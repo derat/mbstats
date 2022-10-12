@@ -4,7 +4,12 @@
 // Package mbstats contains MusicBrainz-related code shared between executables.
 package mbstats
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
+
+//go:generate sh ./gen_types.sh
 
 // I'm being careful with the sizes of these types since read-mbdump
 // ends up holding a lot of them in memory at once.
@@ -19,4 +24,12 @@ type EditorStats struct {
 	Created time.Time          `json:"created"`
 	Active  time.Time          `json:"active"`
 	Edits   map[EditType]int32 `json:"edits"`
+}
+
+// EditTypeName returns a human-readable string describing et.
+func EditTypeName(et EditType) string {
+	if v, ok := editTypeNames[et]; ok {
+		return v
+	}
+	return fmt.Sprintf("UNKNOWN_%d", et)
 }
