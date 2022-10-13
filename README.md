@@ -23,9 +23,11 @@ data, it'd still be hard and slow to work with.
 [Attribution-NonCommercial-ShareAlike 3.0]: http://creativecommons.org/licenses/by-nc-sa/3.0/
 
 So, I wrote [read-mbdump], a program that processes `mbdump-edit.tar.bz2` and
-`mbdump-editor.tar.bz2` and writes much-smaller files containing JSON objects.
+`mbdump-editor.tar.bz2` and writes much-smaller files containing JSON objects. A
+separate [mbstats] program consumes the JSON data and generates stats.
 
 [read-mbdump]: ./cmd/read-mbdump
+[mbstats]: ./cmd/mbstats
 
 ## Usage
 
@@ -45,3 +47,26 @@ took around about 8.5 minutes and 3.1 GB of RAM to process the `20221008-002009`
 dump with 419.5 MB of `mbdump/editor_sanitised` data and 9582.4 MB of
 `mbdump/edit` data. The `editor-*.json` output files containing yearly editor
 stats were each 4 MB or less.
+
+### mbstats
+
+The [mbstats] program accepts a directory containing the JSON files from
+`read-mbdump`.
+
+```
+Usage: mbstats [flag]... <INPUT_DIR>
+Generate MusicBrainz stats using JSON data written by read-mbdump.
+
+  -editor-histogram string
+    	Print editor edit-count histogram for specified edit type
+  -max-year int
+    	Maximum year to display stats from (for applicable actions) (default 2021)
+  -min-year int
+    	Minimum year to display stats from (for applicable actions) (default 2000)
+  -year int
+    	Year to display stats from (for applicable actions) (default 2021)
+  -yearly-editors string
+    	Print yearly editors for specified edit type
+  -yearly-edits string
+    	Print yearly edits of specified type
+```

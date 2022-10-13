@@ -1,7 +1,7 @@
 // Copyright 2022 Daniel Erat.
 // All rights reserved.
 
-// Package main implements the read-mbdump executable.
+// Package main implements the read-mbdump executable for summarizing MusicBrainz database dumps.
 package main
 
 import (
@@ -19,7 +19,7 @@ import (
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), "Usage: read-mbdump [flag]... <DUMP_DIR> <OUT_DIR>")
-		fmt.Fprintln(flag.CommandLine.Output(), "Process MusicBrainz database dumps and write JSON summaries.")
+		fmt.Fprintln(flag.CommandLine.Output(), "Process MusicBrainz database dumps and write JSON data for gen-mb-stats.")
 		fmt.Fprintln(flag.CommandLine.Output())
 		flag.PrintDefaults()
 	}

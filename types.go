@@ -5,6 +5,7 @@
 package mbstats
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -32,4 +33,16 @@ func EditTypeName(et EditType) string {
 		return v
 	}
 	return fmt.Sprintf("UNKNOWN_%d", et)
+}
+
+// NamedEditType returns the edit type corresponding to a human-readable
+// string as returned by EditTypeName.
+func NamedEditType(name string) (EditType, error) {
+	// TODO: Build an inverted map if this is used for anything performance-critical.
+	for k, v := range editTypeNames {
+		if v == name {
+			return k, nil
+		}
+	}
+	return 0, errors.New("unknown edit type")
 }
