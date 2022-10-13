@@ -61,7 +61,7 @@ func printEditorHistogram(w io.Writer, stats []mbstats.EditorStats, et mbstats.E
 			hist.add(v)
 		}
 	}
-	hist.write(w, 0, 60)
+	hist.write(w, 0, 40)
 }
 
 func printEditTypeCorrelations(w io.Writer, stats []mbstats.EditorStats) error {
