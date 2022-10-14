@@ -111,10 +111,7 @@ func (h *histogram) write(w io.Writer, labelWidth, barWidth int) error {
 			return
 		}
 		bw := int(math.Round(float64(count) / float64(maxCount) * float64(barWidth)))
-		bar := strings.Repeat("#", bw)
-		if len(bar) > 0 {
-			bar += " " + strconv.Itoa(count)
-		}
+		bar := strings.Repeat("#", bw) + " " + strconv.Itoa(count)
 		_, perr = fmt.Fprintf(w, fmtStr, label, bar)
 	}
 
