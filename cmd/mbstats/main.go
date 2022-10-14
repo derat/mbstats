@@ -24,7 +24,12 @@ func main() {
 	year := flag.Int("year", time.Now().Year()-1, "Year to display stats from (for applicable actions)")
 	minYear := flag.Int("min-year", 2000, "Minimum year to display stats from (for applicable actions)")
 	maxYear := flag.Int("max-year", time.Now().Year()-1, "Maximum year to display stats from (for applicable actions)")
+	editor := flag.String("editor", "", "Print edit type counts for the named editor")
 	editorHist := flag.String("editor-histogram", "", "Print editor edit-count histogram for specified edit type")
+	editorList := flag.String("editor-list", "", "Print editor names and edits for specified edit type")
+	histMin := flag.Int("histogram-min", 1, "Minimum value for histograms")
+	histMax := flag.Int("histogram-max", 100, "Maximum value for histograms")
+	histBuckets := flag.Int("histogram-buckets", 10, "Buckets to use for histograms")
 	yearlyAge := flag.String("yearly-age", "", "Print yearly average account age in years of editors with specified edit type")
 	yearlyEditors := flag.String("yearly-editors", "", "Print yearly editors for specified edit type")
 	yearlyEdits := flag.String("yearly-edits", "", "Print yearly edits of specified type")
@@ -38,29 +43,45 @@ func main() {
 		jsonDir := flag.Arg(0)
 
 		switch {
+		case *editor != "":
+			stats, _, ret := doSingleYearEditsCmd(jsonDir, *year, "")
+			if ret != 0 {
+				return ret
+			}
+			for _, es := range stats {
+				if es.Name == *editor {
+					for et, cnt := range es.Edits {
+						fmt.Printf("%-37s  %5d\n", mbstats.EditTypeName(et), cnt)
+					}
+					break
+				}
+			}
+			return 0
+
 		case *editorHist != "":
-			et, err := mbstats.NamedEditType(*editorHist)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed looking up %q: %v\n", *editorHist, err)
-				return 2
+			stats, et, ret := doSingleYearEditsCmd(jsonDir, *year, *editorHist)
+			if ret != 0 {
+				return ret
 			}
-			stats, err := readEditorStats(filepath.Join(jsonDir, fmt.Sprintf("editors-%d.json", *year)))
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Failed reading editor stats:", err)
-				return 1
+			printEditorHistogram(os.Stdout, stats, et, *histMin, *histMax, *histBuckets)
+			return 0
+
+		case *editorList != "":
+			stats, et, ret := doSingleYearEditsCmd(jsonDir, *year, *editorList)
+			if ret != 0 {
+				return ret
 			}
-			printEditorHistogram(os.Stdout, stats, et)
+			for _, es := range stats {
+				if cnt := es.Edits[et]; cnt > 0 {
+					fmt.Printf("%5d  %v\n", cnt, es.Name)
+				}
+			}
+			return 0
 
 		case *yearlyAge != "":
-			et, err := mbstats.NamedEditType(*yearlyAge)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed looking up %q: %v\n", *yearlyAge, err)
-				return 2
-			}
-			yearStats, err := readAllEditorStats(jsonDir, *minYear, *maxYear)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Failed reading editor stats:", err)
-				return 1
+			yearStats, et, ret := doYearlyEditsCmd(jsonDir, *minYear, *maxYear, *yearlyAge)
+			if ret != 0 {
+				return ret
 			}
 			for _, ys := range yearStats {
 				end := time.Date(ys.year+1, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -81,15 +102,9 @@ func main() {
 			return 0
 
 		case *yearlyEditors != "":
-			et, err := mbstats.NamedEditType(*yearlyEditors)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed looking up %q: %v\n", *yearlyEditors, err)
-				return 2
-			}
-			yearStats, err := readAllEditorStats(jsonDir, *minYear, *maxYear)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Failed reading editor stats:", err)
-				return 1
+			yearStats, et, ret := doYearlyEditsCmd(jsonDir, *minYear, *maxYear, *yearlyEditors)
+			if ret != 0 {
+				return ret
 			}
 			for _, ys := range yearStats {
 				fmt.Printf("%4d  %5d\n", ys.year, countEditors(ys.stats, et))
@@ -97,15 +112,9 @@ func main() {
 			return 0
 
 		case *yearlyEdits != "":
-			et, err := mbstats.NamedEditType(*yearlyEdits)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed looking up %q: %v\n", *yearlyEdits, err)
-				return 2
-			}
-			yearStats, err := readAllEditorStats(jsonDir, *minYear, *maxYear)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Failed reading editor stats:", err)
-				return 1
+			yearStats, et, ret := doYearlyEditsCmd(jsonDir, *minYear, *maxYear, *yearlyEdits)
+			if ret != 0 {
+				return ret
 			}
 			for _, ys := range yearStats {
 				fmt.Printf("%4d  %6d\n", ys.year, countEditTypes(ys.stats)[et])
@@ -116,7 +125,47 @@ func main() {
 			fmt.Fprintln(os.Stderr, "No action specified (e.g. -editor-histogram ARTIST_CREATE)")
 			return 2
 		}
-
-		return 0
 	}())
+}
+
+// doSingleYearEditsCmd contains common code for commands that read a single year's editor stats.
+// If editName is non-empty, it will be parsed and the corresponding edit type will be returned.
+// If the returned int is non-zero, a failure occurred and it should be used as the exit code.
+func doSingleYearEditsCmd(jsonDir string, year int, editName string) (
+	[]mbstats.EditorStats, mbstats.EditType, int) {
+	var et mbstats.EditType
+	if editName != "" {
+		var err error
+		if et, err = mbstats.NamedEditType(editName); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed looking up %q: %v\n", editName, err)
+			return nil, 0, 2
+		}
+	}
+	stats, err := readEditorStats(filepath.Join(jsonDir, fmt.Sprintf("editors-%d.json", year)))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed reading editor stats:", err)
+		return nil, 0, 1
+	}
+	return stats, et, 0
+}
+
+// doYearlyEditsCmd contains common code for commands that read multiple years' editor stats.
+// If editName is non-empty, it will be parsed and the corresponding edit type will be returned.
+// If the returned int is non-zero, a failure occurred and it should be used as the exit code.
+func doYearlyEditsCmd(jsonDir string, minYear, maxYear int, editName string) (
+	[]yearEditorStats, mbstats.EditType, int) {
+	var et mbstats.EditType
+	if editName != "" {
+		var err error
+		if et, err = mbstats.NamedEditType(editName); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed looking up %q: %v\n", editName, err)
+			return nil, 0, 2
+		}
+	}
+	stats, err := readAllEditorStats(jsonDir, minYear, maxYear)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed reading editor stats:", err)
+		return nil, 0, 1
+	}
+	return stats, et, 0
 }

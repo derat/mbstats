@@ -57,8 +57,18 @@ The [mbstats] program accepts a directory containing the JSON files from
 Usage: mbstats [flag]... <INPUT_DIR>
 Generate MusicBrainz stats using JSON data written by read-mbdump.
 
+  -editor string
+    	Print edit type counts for the named editor
   -editor-histogram string
     	Print editor edit-count histogram for specified edit type
+  -editor-list string
+    	Print editor names and edits for specified edit type
+  -histogram-buckets int
+    	Buckets to use for histograms (default 10)
+  -histogram-max int
+    	Maximum value for histograms (default 100)
+  -histogram-min int
+    	Minimum value for histograms (default 1)
   -max-year int
     	Maximum year to display stats from (for applicable actions) (default 2021)
   -min-year int

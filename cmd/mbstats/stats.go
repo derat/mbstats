@@ -54,8 +54,9 @@ func printEditTypeCounts(w io.Writer, stats []mbstats.EditorStats) {
 }
 
 // printEditorHistogram prints a histogram of per-editor edit counts.
-func printEditorHistogram(w io.Writer, stats []mbstats.EditorStats, et mbstats.EditType) {
-	hist := newHistogram(1, 100, 10)
+func printEditorHistogram(w io.Writer, stats []mbstats.EditorStats, et mbstats.EditType,
+	min, max, buckets int) {
+	hist := newHistogram(int64(min), int64(max), buckets)
 	for _, es := range stats {
 		if v := int64(es.Edits[et]); v > 0 {
 			hist.add(v)
