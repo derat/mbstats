@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"time"
 
 	"github.com/derat/mbstats"
 	gostats "github.com/montanaflynn/stats"
@@ -32,6 +33,26 @@ func countEditTypes(stats []mbstats.EditorStats) map[mbstats.EditType]int {
 		}
 	}
 	return counts
+}
+
+// getEditorAgeStats computes the median and mean account age (relative to ref)
+// in years of editors with at least one edit of type et.
+func getEditorAgeStats(stats []mbstats.EditorStats, et mbstats.EditType, ref time.Time) (
+	medianYears, meanYears float64) {
+	var ages gostats.Float64Data
+	for _, es := range stats {
+		if es.Edits[et] > 0 && !es.Created.IsZero() {
+			ages = append(ages, ref.Sub(es.Created).Seconds()/(86400*365))
+		}
+	}
+	var err error
+	if medianYears, err = gostats.Median(ages); err != nil {
+		medianYears = 0
+	}
+	if meanYears, err = gostats.Mean(ages); err != nil {
+		meanYears = 0
+	}
+	return medianYears, meanYears
 }
 
 // printEditTypeCounts prints edit types by descending number of editors.

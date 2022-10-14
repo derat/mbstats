@@ -76,7 +76,7 @@ Generate MusicBrainz stats using JSON data written by read-mbdump.
   -year int
     	Year to display stats from (for applicable actions) (default 2021)
   -yearly-age string
-    	Print yearly average account age in years of editors with specified edit type
+    	Print yearly median and mean account age in years of editors with specified edit type
   -yearly-editors string
     	Print yearly editors for specified edit type
   -yearly-edits string

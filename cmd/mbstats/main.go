@@ -30,7 +30,7 @@ func main() {
 	histMin := flag.Int("histogram-min", 1, "Minimum value for histograms")
 	histMax := flag.Int("histogram-max", 100, "Maximum value for histograms")
 	histBuckets := flag.Int("histogram-buckets", 10, "Buckets to use for histograms")
-	yearlyAge := flag.String("yearly-age", "", "Print yearly average account age in years of editors with specified edit type")
+	yearlyAge := flag.String("yearly-age", "", "Print yearly median and mean account age in years of editors with specified edit type")
 	yearlyEditors := flag.String("yearly-editors", "", "Print yearly editors for specified edit type")
 	yearlyEdits := flag.String("yearly-edits", "", "Print yearly edits of specified type")
 	flag.Parse()
@@ -85,19 +85,8 @@ func main() {
 			}
 			for _, ys := range yearStats {
 				end := time.Date(ys.year+1, 1, 1, 0, 0, 0, 0, time.UTC)
-				var sum float64
-				var cnt int
-				for _, es := range ys.stats {
-					if es.Edits[et] > 0 && !es.Created.IsZero() {
-						sum += end.Sub(es.Created).Seconds() / (86400 * 365)
-						cnt++
-					}
-				}
-				var avg float64
-				if cnt > 0 {
-					avg = sum / float64(cnt)
-				}
-				fmt.Printf("%4d  %0.1f\n", ys.year, avg)
+				median, mean := getEditorAgeStats(ys.stats, et, end)
+				fmt.Printf("%4d  %1.1f  %1.1f\n", ys.year, median, mean)
 			}
 			return 0
 
